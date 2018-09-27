@@ -1152,76 +1152,135 @@ std::string EditorToolkit::EditInfo()
 
 bool EditorToolkit::Group(std::string groupType, std::vector<std::string> elementIds)
 {
-    m_editInfo = "";
-    Object *newParent, *neumeParent, *newSylParent, *sylParent;
-    std::set<Object *> sylParents, neumeParents;
+    // m_editInfo = "";
+    // Object *newParent, *neumeParent, *newSylParent, *sylParent;
+    // std::set<Object *> sylParents, neumeParents;
 
-    //Get the current drawing page
-    if (!m_doc->GetDrawingPage()) {
-        LogError("Could not get the drawing page.");
-        return false;
-    }
+    // //Get the current drawing page
+    // if (!m_doc->GetDrawingPage()) {
+    //     LogError("Could not get the drawing page.");
+    //     return false;
+    // }
+    // for (auto it = elementIds.begin(); it != elementIds.end(); ++it) {
+    //     Object *el = m_doc->GetDrawingPage()->FindChildByUuid(*it);
+    //     //The parent of the first element in the list will become the parent for all elements
+    //     if (elementIds.begin() == it){ 
+    //         if(groupType == "nc"){
+    //             newParent = el->GetFirstParent(NEUME);
+    //             assert(newParent);
+    //             newSylParent = newParent->GetFirstParent(SYLLABLE);
+    //             assert(newSylParent);
+    //         }
+    //         else if(groupType == "neume"){
+    //             newParent = el->GetFirstParent(SYLLABLE);
+    //             assert(newParent);
+    //             newSylParent = newParent;
+    //         }
+    //         else{
+    //             LogError("Invalid groupType for grouping");
+    //             return false;
+    //         }
+    //     }
+    //     //The rest of the elements get copied to their new parent
+    //     else {
+    //         if(groupType == "nc"){
+    //             neumeParent = el->GetFirstParent(NEUME);
+    //             assert(neumeParent);
+    //             sylParent = neumeParent->GetFirstParent(SYLLABLE);
+    //             assert(sylParent);
+    //             if(newParent != neumeParent){
+    //                 el->MoveItselfTo(newParent);
+    //                 neumeParents.insert(neumeParent);
+    //             }
+    //         }
+    //         else if(groupType == "neume"){
+    //             sylParent = el->GetFirstParent(SYLLABLE);
+    //             assert(sylParent);
+    //             if(newParent != sylParent){
+    //                 el->MoveItselfTo(newParent);
+    //             }
+    //         }
+
+    //         std::string className = sylParent->GetClassName();
+    //         if(className != "Syllable") return false;
+
+    //         if(sylParent != newSylParent){
+    //             sylParents.insert(sylParent);
+    //         }
+    //     }
+    // }
+    // //delete previous parents
+    // for (auto it = neumeParents.begin(); it != neumeParents.end(); ++it) {
+    //     Object *p = (*it)->GetParent();
+    //     if(!p->DeleteChild(*it)){
+    //         LogError("Unable to delete child during grouping.");
+    //         return false;
+    //     }
+    // }
+    // for (auto it = sylParents.begin(); it != sylParents.end(); ++it) {
+    //     Object *p = (*it)->GetParent();
+    //     if(!p->DeleteChild(*it)){
+    //         LogError("Unable to delete child during grouping.");
+    //         return false;
+    //     }
+    // }
+    // m_editInfo = newParent->GetUuid();
+    // return true;
+
+    m_editInfo = "";
+    Object *fParent, *sParent, *curFParent, *curSParent, *newParent, *parent;
+    std::set<Object *> oldParents;
+    int numChildren;
+
     for (auto it = elementIds.begin(); it != elementIds.end(); ++it) {
         Object *el = m_doc->GetDrawingPage()->FindChildByUuid(*it);
-        //The parent of the first element in the list will become the parent for all elements
-        if (elementIds.begin() == it){
-            if(groupType == "nc"){
-                newParent = el->GetFirstParent(NEUME);
-                assert(newParent);
-                newSylParent = newParent->GetFirstParent(SYLLABLE);
-                assert(newSylParent);
+
+        if (elementIds.begin() == it){ 
+            fParent = el->GetParent();
+            assert(fParent);
+            oldParents.insert(fParent);
+
+            sParent = fParent->GetParent();
+            assert(sParent);
+
+            newParent =  fParent->Clone();
+            assert(newParent);
+
+            el->MoveItselfTo(newParent);
+            fParent->ClearRelinquishedChildren();
+            sParent->AddChild(newParent);
+            sParent->ReorderByXPos();
+
+            oldParents.insert(fParent);
+        }
+        else{
+            curFParent = el->GetParent();
+            assert(curFParent);
+
+            el->MoveItselfTo(newParent);
+
+            curFParent->ClearRelinquishedChildren();
+
+            if(curFParent != fParent){
+                oldParents.insert(curFParent);
             }
-            else if(groupType == "neume"){
-                newParent = el->GetFirstParent(SYLLABLE);
-                assert(newParent);
-                newSylParent = newParent;
-            }
-            else{
-                LogError("Invalid groupType for grouping");
+
+            curSParent = curFParent->GetParent();
+            assert(curSParent);
+
+            if(curSParent != sParent){
+                oldParents.insert(curSParent);
+            }    
+        }
+    }
+    for (auto it = oldParents.begin(); it != oldParents.end(); ++it) {
+        numChildren = (*it)->GetChildCount();
+        if(numChildren == 0){
+            parent = (*it)->GetParent();
+            if(!parent->DeleteChild(*it)){
+                LogError("Unable to delete child during grouping.");
                 return false;
             }
-        }
-        //The rest of the elements get copied to their new parent
-        else {
-            if(groupType == "nc"){
-                neumeParent = el->GetFirstParent(NEUME);
-                assert(neumeParent);
-                sylParent = neumeParent->GetFirstParent(SYLLABLE);
-                assert(sylParent);
-                if(newParent != neumeParent){
-                    el->MoveItselfTo(newParent);
-                    neumeParents.insert(neumeParent);
-                }
-            }
-            else if(groupType == "neume"){
-                sylParent = el->GetFirstParent(SYLLABLE);
-                assert(sylParent);
-                if(newParent != sylParent){
-                    el->MoveItselfTo(newParent);
-                }
-            }
-
-            std::string className = sylParent->GetClassName();
-            if(className != "Syllable") return false;
-
-            if(sylParent != newSylParent){
-                sylParents.insert(sylParent);
-            }
-        }
-    }
-    //delete previous parents
-    for (auto it = neumeParents.begin(); it != neumeParents.end(); ++it) {
-        Object *p = (*it)->GetParent();
-        if(!p->DeleteChild(*it)){
-            LogError("Unable to delete child during grouping.");
-            return false;
-        }
-    }
-    for (auto it = sylParents.begin(); it != sylParents.end(); ++it) {
-        Object *p = (*it)->GetParent();
-        if(!p->DeleteChild(*it)){
-            LogError("Unable to delete child during grouping.");
-            return false;
         }
     }
     m_editInfo = newParent->GetUuid();
