@@ -1166,9 +1166,7 @@ bool EditorToolkit::Group(std::string groupType, std::vector<std::string> elemen
             maxXPos = curXPos; //track xposition of elements
         }
 
-        //
         //Get the first parent and second parent of the first element in the list and create a new parent for the new grouping
-        //
         if (elementIds.begin() == it){ 
             fParent = el->GetParent();
             assert(fParent);
@@ -1188,9 +1186,7 @@ bool EditorToolkit::Group(std::string groupType, std::vector<std::string> elemen
             oldFParents.insert(fParent);
         }
 
-        //
         //Move the rest of the element to be grouped to the new parent
-        //
         else{
             curFParent = el->GetParent();
             assert(curFParent);
@@ -1212,9 +1208,7 @@ bool EditorToolkit::Group(std::string groupType, std::vector<std::string> elemen
         }
     }
 
-    //
     //Handles grouping withing a single common parent
-    //
     if(oldFParents.size() == 1){
         singleParent = (*oldFParents.begin());
         int numChildren = singleParent->GetChildCount();
@@ -1232,16 +1226,16 @@ bool EditorToolkit::Group(std::string groupType, std::vector<std::string> elemen
             
             for (auto it = leftoverChildren.begin(); it != leftoverChildren.end(); ++it){
                 (*it)->MoveItselfTo(newParent2);
-                singleParent->ClearRelinquishedChildren();
-
-                sParent->AddChild(newParent2);
-                sParent->ReorderByXPos();
+                
             }
+
+            singleParent->ClearRelinquishedChildren();
+            sParent->AddChild(newParent2);
+            sParent->ReorderByXPos();
         }
     }
-    //
+    
     //Deletes parents that no longer have children
-    //
     for (auto it = oldFParents.begin(); it != oldFParents.end(); ++it) {
         numChildren = (*it)->GetChildCount();
         if(numChildren == 0){
