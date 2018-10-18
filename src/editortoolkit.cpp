@@ -1153,7 +1153,7 @@ std::string EditorToolkit::EditInfo()
 bool EditorToolkit::Group(std::string groupType, std::vector<std::string> elementIds)
 {
     m_editInfo = "";
-    Object *fParent, *sParent, *curFParent, *curSParent, *newParent, *parent;
+    Object *fParent, *sParent, *curFParent, *curSParent, *newParent1, *newParent2, *parent, *singleParent;
     std::set<Object *> oldFParents, oldSParents, leftoverChildren;
     int numChildren, curXPos;
     int maxXPos = -1;
@@ -1163,63 +1163,85 @@ bool EditorToolkit::Group(std::string groupType, std::vector<std::string> elemen
         curXPos = el->GetDrawingX();
 
         if(curXPos > maxXPos){
-            maxXPos = curXPos;
+            maxXPos = curXPos; //track xposition of elements
         }
 
+        //
+        //Get the first parent and second parent of the first element in the list and create a new parent for the new grouping
+        //
         if (elementIds.begin() == it){ 
             fParent = el->GetParent();
             assert(fParent);
-            oldParents.insert(fParent);
+            oldFParents.insert(fParent);
 
             sParent = fParent->GetParent();
             assert(sParent);
 
-            newParent =  fParent->Clone();
-            assert(newParent);
+            newParent1 =  fParent->Clone();
+            assert(newParent1);
 
-            el->MoveItselfTo(newParent);
+            el->MoveItselfTo(newParent1);
             fParent->ClearRelinquishedChildren();
-            sParent->AddChild(newParent);
+            sParent->AddChild(newParent1);
             sParent->ReorderByXPos();
 
             oldFParents.insert(fParent);
         }
+
+        //
+        //Move the rest of the element to be grouped to the new parent
+        //
         else{
             curFParent = el->GetParent();
             assert(curFParent);
 
-            el->MoveItselfTo(newParent);
+            el->MoveItselfTo(newParent1);
 
             curFParent->ClearRelinquishedChildren();
 
             if(curFParent != fParent){
-                oldFParents.insert(curFParent);
+                oldFParents.insert(curFParent); //Track old first parents of grouped elements
             }
 
             curSParent = curFParent->GetParent();
             assert(curSParent);
 
             if(curSParent != sParent){
-                oldSParents.insert(curSParent);
+                oldSParents.insert(curSParent); //Track old second parents of grouped elements 
             }    
         }
     }
-    if(oldFParents.length == 1){
-        Object *singleParent = oldFParents[0];
+
+    //
+    //Handles grouping withing a single common parent
+    //
+    if(oldFParents.size() == 1){
+        singleParent = (*oldFParents.begin());
         int numChildren = singleParent->GetChildCount();
         for (int i = 0; i < numChildren; i++){
             Object *c = singleParent->GetChild(i);
             int xPos = c->GetDrawingX();
             if(xPos > maxXPos){
-                leftoverChildren.insert(c)
+                leftoverChildren.insert(c); //leftover children to be moved to a new parent
             }
         }
-        //check if there are leftover children
-        //clone singleParent to new parent
-        //move leftover children to new parent
-        //relingquish children
-        //add new parent to upper parent
+
+        if(leftoverChildren.size() > 0){
+            newParent2 = singleParent->Clone();
+            assert(newParent2);
+            
+            for (auto it = leftoverChildren.begin(); it != leftoverChildren.end(); ++it){
+                (*it)->MoveItselfTo(newParent2);
+                singleParent->ClearRelinquishedChildren();
+
+                sParent->AddChild(newParent2);
+                sParent->ReorderByXPos();
+            }
+        }
     }
+    //
+    //Deletes parents that no longer have children
+    //
     for (auto it = oldFParents.begin(); it != oldFParents.end(); ++it) {
         numChildren = (*it)->GetChildCount();
         if(numChildren == 0){
@@ -1240,7 +1262,7 @@ bool EditorToolkit::Group(std::string groupType, std::vector<std::string> elemen
             }
         }
     }
-    m_editInfo = newParent->GetUuid();
+    m_editInfo = newParent1->GetUuid();
     return true;
 }
 
