@@ -14,6 +14,7 @@
 
 #include "doc.h"
 #include "view.h"
+#include "jsonxx.h"
 
 //----------------------------------------------------------------------------
 
@@ -134,7 +135,7 @@ public:
      * Render the page in SVG and returns it as a string.
      * Page number is 1-based
      */
-    std::string RenderToSVG(int pageNo = 1, bool xml_declaration = false);
+    std::string RenderToSVG(int pageNo = 1, bool xml_declaration = false, const std::string &elementId = "");
 
     /**
      * Render the page in SVG and save it to the file.

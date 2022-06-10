@@ -67,7 +67,7 @@ public:
      * Get the SVG into a string.
      * Add the xml tag if necessary.
      */
-    std::string GetStringSVG(bool xml_declaration = false);
+    std::string GetStringSVG(bool xml_declaration = false, const std::string &elementId = "");
 
     /**
      * @name Drawing methods
@@ -225,7 +225,7 @@ private:
      * Flush the data to the internal buffer.
      * Adds the xml tag if necessary and the <defs> from m_smuflGlyphs
      */
-    void Commit(bool xml_declaration);
+    void Commit(bool xml_declaration, const std::string &elementId);
 
     void WriteLine(std::string);
 

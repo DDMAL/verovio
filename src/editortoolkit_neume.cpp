@@ -47,6 +47,7 @@ bool EditorToolkitNeume::ParseEditorAction(const std::string &json_editorAction)
 {
     jsonxx::Object json;
     m_infoObject.reset();
+    m_editObject.reset();
 
     // Read JSON actions
     if (!json.parse(json_editorAction)) {
@@ -87,28 +88,40 @@ bool EditorToolkitNeume::ParseEditorAction(const std::string &json_editorAction)
         std::vector<std::pair<std::string, std::string> > attributes;
         if (this->ParseInsertAction(
                 json.get<jsonxx::Object>("param"), &elementType, &staffId, &ulx, &uly, &lrx, &lry, &attributes)) {
-            return this->Insert(elementType, staffId, ulx, uly, lrx, lry, attributes);
+            jsonxx::Object response = this->Insert(elementType, staffId, ulx, uly, lrx, lry, attributes);
+            std::cout << response.json() << std::endl;
+
+            return response.get<jsonxx::Boolean>("success");
         }
         LogWarning("Could not parse the insert action");
     }
     else if (action == "insertToSyllable") {
         std::string elementId;
         if (this->ParseInsertToSyllableAction(json.get<jsonxx::Object>("param"), &elementId)) {
-            return this->InsertToSyllable(elementId);
+            jsonxx::Object response = this->InsertToSyllable(elementId);
+            std::cout << response.json() << std::endl;
+
+            return response.get<jsonxx::Boolean>("success");
         }
         LogWarning("Could not parse the insert action");
     }
     else if (action == "set") {
         std::string elementId, attrType, attrValue;
         if (this->ParseSetAction(json.get<jsonxx::Object>("param"), &elementId, &attrType, &attrValue)) {
-            return this->Set(elementId, attrType, attrValue);
+            jsonxx::Object response = this->Set(elementId, attrType, attrValue);
+            std::cout << response.json() << std::endl;
+
+            return response.get<jsonxx::Boolean>("success");
         }
         LogWarning("Could not parse the set action");
     }
     else if (action == "setText") {
         std::string elementId, text;
         if (this->ParseSetTextAction(json.get<jsonxx::Object>("param"), &elementId, &text)) {
-            return this->SetText(elementId, text);
+            jsonxx::Object response = this->SetText(elementId, text);
+            std::cout << response.json() << std::endl;
+
+            return response.get<jsonxx::Boolean>("success");
         }
         LogWarning("Could not parse the set text action");
     }
@@ -214,6 +227,7 @@ bool EditorToolkitNeume::ParseEditorAction(const std::string &json_editorAction)
     }
     m_infoObject.import("status", "FAILURE");
     m_infoObject.import("message", "Action " + action + " could not be parsed or is unknown.");
+
     return false;
 }
 
@@ -683,20 +697,26 @@ bool EditorToolkitNeume::Drag(std::string elementId, int x, int y)
     return true;
 }
 
-bool EditorToolkitNeume::Insert(std::string elementType, std::string staffId, int ulx, int uly, int lrx, int lry,
+jsonxx::Object EditorToolkitNeume::Insert(std::string elementType, std::string staffId, int ulx, int uly, int lrx, int lry,
     std::vector<std::pair<std::string, std::string> > attributes)
 {
+    jsonxx::Object response;
+
     if (!m_doc->GetDrawingPage()) {
         LogError("Could not get drawing page");
         m_infoObject.import("status", "FAILURE");
         m_infoObject.import("message", "Could not get drawing page.");
-        return false;
+
+        response << "success" << false;
+        return response;
     }
     if (m_doc->GetType() != Facs) {
         LogError("Drawing page without facsimile");
         m_infoObject.import("status", "FAILURE");
         m_infoObject.import("message", "Drawing page without facsimile is unsupported.");
-        return false;
+
+        response << "success" << false;
+        return response;
     }
 
     Staff *staff;
@@ -781,7 +801,9 @@ bool EditorToolkitNeume::Insert(std::string elementType, std::string staffId, in
                 m_infoObject.import("status", status);
                 m_infoObject.import("message", message);
 
-                return true;
+                response << "success" << true;
+                response << "changed" << jsonxx::Array(parent->GetParent()->GetUuid());
+                return response;
             }
         }
         LogWarning("Failed to insert newStaff into staff");
@@ -792,7 +814,10 @@ bool EditorToolkitNeume::Insert(std::string elementType, std::string staffId, in
         m_infoObject.import("uuid", newStaff->GetUuid());
         m_infoObject.import("status", status);
         m_infoObject.import("message", message);
-        return true;
+
+        response << "success" << true;
+        response << "changed" << jsonxx::Array(parent->GetParent()->GetUuid());
+        return response;
     }
 
     if (staff == NULL) {
@@ -800,7 +825,9 @@ bool EditorToolkitNeume::Insert(std::string elementType, std::string staffId, in
         delete zone;
         m_infoObject.import("status", "FAILURE");
         m_infoObject.import("message", "A staff must exist in the page to add a non-staff element.");
-        return false;
+
+        response << "success" << false;
+        return response;
     }
     Layer *layer = dynamic_cast<Layer *>(staff->FindDescendantByType(LAYER));
     assert(layer);
@@ -864,7 +891,9 @@ bool EditorToolkitNeume::Insert(std::string elementType, std::string staffId, in
 
             m_infoObject.import("status", "FAILURE");
             m_infoObject.import("message", "Failed to set pitch.");
-            return false;
+
+            response << "success" << false;
+            return response;
         }
 
         // Set as inclinatum or virga or liquescent (if necessary), or get contour for grouping
@@ -927,7 +956,9 @@ bool EditorToolkitNeume::Insert(std::string elementType, std::string staffId, in
                     LogError("Unsupported character in contour.");
                     m_infoObject.import("status", "FAILURE");
                     m_infoObject.import("message", "Unsupported character in contour.");
-                    return false;
+
+                    response << "success" << false;
+                    return response;
                 }
 
                 // Apply offset due to rotate
@@ -979,7 +1010,9 @@ bool EditorToolkitNeume::Insert(std::string elementType, std::string staffId, in
 
             m_infoObject.import("status", "FAILURE");
             m_infoObject.import("message", "A clef shape must be specified.");
-            return false;
+
+            response << "success" << false;
+            return response;
         }
         clef->SetShape(clefShape);
         const int staffSize = m_doc->GetDrawingDoubleUnit(staff->m_drawingStaffSize);
@@ -1050,7 +1083,8 @@ bool EditorToolkitNeume::Insert(std::string elementType, std::string staffId, in
 
             m_infoObject.import("status", "FAILURE");
             m_infoObject.import("message", "Failed to set pitch.");
-            return false;
+            response << "success" << false;
+            return response;
         }
         m_infoObject.import("uuid", custos->GetUuid());
     }
@@ -1075,7 +1109,8 @@ bool EditorToolkitNeume::Insert(std::string elementType, std::string staffId, in
 
             m_infoObject.import("status", "FAILURE");
             m_infoObject.import("message", "A accid type must be specified.");
-            return false;
+            response << "success" << false;
+            return response;
         }
 
         accid->SetAccid(accidTypeW);
@@ -1099,7 +1134,7 @@ bool EditorToolkitNeume::Insert(std::string elementType, std::string staffId, in
 
         m_infoObject.import("uuid", accid->GetUuid());
     }
-    else if(elementType == "divLine"){
+    else if (elementType == "divLine") {
         DivLine *divLine = new DivLine();
         data_DIVLINE divLineTypeW = DIVLINE_NONE;
 
@@ -1126,7 +1161,8 @@ bool EditorToolkitNeume::Insert(std::string elementType, std::string staffId, in
 
             m_infoObject.import("status", "FAILURE");
             m_infoObject.import("message", "A divLine type must be specified.");
-            return false;
+            response << "success" << false;
+            return response;
         }
 
         divLine->SetForm(divLineTypeW);
@@ -1149,32 +1185,42 @@ bool EditorToolkitNeume::Insert(std::string elementType, std::string staffId, in
         layer->ReorderByXPos();
 
         m_infoObject.import("uuid", divLine->GetUuid());
-        
     }
     else {
         LogError("Unsupported type '%s' for insertion", elementType.c_str());
         m_infoObject.import("status", "FAILURE");
         m_infoObject.import("message", "Unsupported type '" + elementType + "' for insertion.");
-        return false;
+
+        response << "success" << false;
+        return response;
     }
     layer->ReorderByXPos();
     m_infoObject.import("status", status);
     m_infoObject.import("message", message);
-    return true;
+
+    response << "success" << true;
+    response << "changed" << jsonxx::Array(layer->GetUuid());
+    return response;
 }
 
-bool EditorToolkitNeume::InsertToSyllable(std::string elementId) {
+jsonxx::Object EditorToolkitNeume::InsertToSyllable(std::string elementId) {
+    jsonxx::Object response;
+
     if (!m_doc->GetDrawingPage()) {
         LogError("Could not get drawing page");
         m_infoObject.import("status", "FAILURE");
         m_infoObject.import("message", "Could not get drawing page.");
-        return false;
+
+        response << "success" << false;
+        return response;
     }
     if (m_doc->GetType() != Facs) {
         LogError("Drawing page without facsimile");
         m_infoObject.import("status", "FAILURE");
         m_infoObject.import("message", "Drawing page without facsimile is unsupported.");
-        return false;
+        
+        response << "success" << false;
+        return response;
     }
 
     Object *element = m_doc->GetDrawingPage()->FindDescendantByUuid(elementId);
@@ -1186,7 +1232,9 @@ bool EditorToolkitNeume::InsertToSyllable(std::string elementId) {
         LogError("No element exists with ID '%s'.", elementId.c_str());
         m_infoObject.import("status", "FAILURE");
         m_infoObject.import("message", "No element exists with ID" + elementId + ".");
-        return false;
+        
+        response << "success" << false;
+        return response;
     }
     if (!(element->Is(DIVLINE) || element->Is(ACCID))) {
         LogError("Element is of type %s, but only Divlines and Accids can be inserted into syllables.",
@@ -1195,7 +1243,9 @@ bool EditorToolkitNeume::InsertToSyllable(std::string elementId) {
         m_infoObject.import("message",
             "Element is of type " + element->GetClassName()
                 + ", but only DivLines and Accids can be inserted into syllables.");
-        return false;
+        
+        response << "success" << false;
+        return response;
     }
     if (!parent->Is(LAYER)) {
         LogError("The selected %s is not a child of layer.",
@@ -1204,7 +1254,9 @@ bool EditorToolkitNeume::InsertToSyllable(std::string elementId) {
         m_infoObject.import("message",
             "The selected " + element->GetClassName()
                 + "is not a child of layer.");
-        return false;
+        
+        response << "success" << false;
+        return response;
     }
 
     // get the position of the selected element
@@ -1218,7 +1270,9 @@ bool EditorToolkitNeume::InsertToSyllable(std::string elementId) {
         LogError("Selected '%s' without facsimile", element->GetClassName().c_str());
         m_infoObject.import("status", "FAILURE");
         m_infoObject.import("message", "Selected '" + element->GetClassName() + "' without facsimile is unsupported.");
-        return false;        
+        
+        response << "success" << false;
+        return response;
     }
 
     Staff *staff = dynamic_cast<Staff *>(element->GetFirstAncestor(STAFF));
@@ -1243,7 +1297,9 @@ bool EditorToolkitNeume::InsertToSyllable(std::string elementId) {
         LogError("A syllable must exist in the staff to insert a '%s' into.", element->GetClassName().c_str());
         m_infoObject.import("status", "FAILURE");
         m_infoObject.import("message", "A syllable must exist in the staff to insert a '" + element->GetClassName() + "' into.");
-        return false;
+
+        response << "success" << false;
+        return response;
     }
 
     // get nearest syllable using nearest neume
@@ -1257,7 +1313,10 @@ bool EditorToolkitNeume::InsertToSyllable(std::string elementId) {
 
     m_infoObject.import("status", "OK");
     m_infoObject.import("message", "");
-    return true;   
+
+    response << "success" << true;
+    response << "changed" << jsonxx::Array(staff->GetUuid());
+    return response;
 }
 
 bool EditorToolkitNeume::Merge(std::vector<std::string> elementIds)
@@ -1351,9 +1410,14 @@ bool EditorToolkitNeume::Merge(std::vector<std::string> elementIds)
     return true;
 }
 
-bool EditorToolkitNeume::Set(std::string elementId, std::string attrType, std::string attrValue)
+jsonxx::Object EditorToolkitNeume::Set(std::string elementId, std::string attrType, std::string attrValue)
 {
-    if (!m_doc->GetDrawingPage()) return false;
+    jsonxx::Object response;
+
+    if (!m_doc->GetDrawingPage()) {
+        response << "success" << false;
+        return response;
+    }
     Object *element = m_doc->GetDrawingPage()->FindDescendantByUuid(elementId);
     bool success = false;
     if (Att::SetAnalytical(element, attrType, attrValue))
@@ -1388,27 +1452,38 @@ bool EditorToolkitNeume::Set(std::string elementId, std::string attrType, std::s
     }
     m_infoObject.import("status", success ? "OK" : "FAILURE");
     m_infoObject.import("message", success ? "" : "Could not set attribute '" + attrType + "' to '" + attrValue + "'.");
-    return success;
+
+    response << "success" << success;
+    response << "changed" << jsonxx::Array(element->GetUuid());
+
+    return response;
 }
 
 // Update the text of a TextElement by its syl
-bool EditorToolkitNeume::SetText(std::string elementId, std::string text)
+jsonxx::Object EditorToolkitNeume::SetText(std::string elementId, std::string text)
 {
     std::string status = "OK", message = "";
     std::wstring wtext;
     std::wstring_convert<std::codecvt_utf8_utf16<wchar_t> > conv;
     wtext = conv.from_bytes(text);
+
+    jsonxx::Object response;
+
     if (!m_doc->GetDrawingPage()) {
         m_infoObject.import("status", "FAILURE");
         m_infoObject.import("message", "Could not find drawing page.");
-        return false;
+
+        response << "success" << false;
+        return response;
     }
     Object *element = m_doc->GetDrawingPage()->FindDescendantByUuid(elementId);
     if (element == NULL) {
         LogWarning("No element with ID '%s' exists", elementId.c_str());
         m_infoObject.import("status", "FAILURE");
         m_infoObject.import("message", "No element with ID '" + elementId + "' exists.");
-        return false;
+
+        response << "success" << false;
+        return response;
     }
 
     bool success = false;
@@ -1481,18 +1556,26 @@ bool EditorToolkitNeume::SetText(std::string elementId, std::string text)
             success = true;
         }
         else {
-            success = SetText(syl->GetUuid(), text);
+            std::cout << "recursive call" << std::endl;
+            jsonxx::Object recurse_response = SetText(syl->GetUuid(), text);
+            success = recurse_response.get<jsonxx::Boolean>("success");
         }
     }
     else {
         LogError("Element type '%s' is unsupported for SetText", element->GetClassName().c_str());
         m_infoObject.import("status", "FAILURE");
         m_infoObject.import("message", "Element type '" + element->GetClassName() + "' is unsupported for SetText.");
-        return false;
+
+        response << "success" << false;
+        return response;
     }
     m_infoObject.import("status", success ? status : "FAILURE");
     m_infoObject.import("message", success ? message : "SetText method failed.");
-    return success;
+
+    response << "success" << success;
+    response << "changed" << jsonxx::Array(element->GetUuid());
+
+    return response;
 }
 
 bool EditorToolkitNeume::SetClef(std::string elementId, std::string shape)
@@ -1588,7 +1671,9 @@ bool EditorToolkitNeume::Split(std::string elementId, int x)
     int newLry = staff->GetZone()->GetLry(); // don't need to maintain height since we're setting rotate manually
     std::vector<std::pair<std::string, std::string> > v;
 
-    if (!this->Insert("staff", "auto", newUlx, newUly, newLrx, newLry, v)) {
+    bool insert_snd_staff = (this->Insert("staff", "auto", newUlx, newUly, newLrx, newLry, v))
+        .get<jsonxx::Boolean>("success");
+    if (!insert_snd_staff) {
         LogError("Failed to create a second staff.");
         m_infoObject.reset();
         m_infoObject.import("status", "FAILURE");

@@ -55,6 +55,8 @@ SvgDeviceContext::SvgDeviceContext() : DeviceContext()
 
     // create the initial SVG element
     // width and height need to be set later; these are taken care of in "commit"
+    //
+    // NEON: m_svgNode = <svg id="mei_output">
     m_svgNode = m_svgDoc.append_child("svg");
     m_svgNode.append_attribute("version") = "1.1";
     m_svgNode.append_attribute("xmlns") = "http://www.w3.org/2000/svg";
@@ -79,7 +81,7 @@ bool SvgDeviceContext::CopyFileToStream(const std::string &filename, std::ostrea
     return true;
 }
 
-void SvgDeviceContext::Commit(bool xml_declaration)
+void SvgDeviceContext::Commit(bool xml_declaration, const std::string &elementId)
 {
 
     if (m_committed) {
@@ -150,7 +152,20 @@ void SvgDeviceContext::Commit(bool xml_declaration)
 
     // save the glyph data to m_outdata
     std::string indent = (m_indent == -1) ? "\t" : std::string(m_indent, ' ');
+
     m_svgDoc.save(m_outdata, indent.c_str(), output_flags);
+
+    // if (elementId == "")
+        // m_svgDoc.save(m_outdata, indent.c_str(), output_flags);
+    // else {
+    std::ostringstream test;
+
+    m_svgDoc
+        .find_child_by_attribute("id", elementId.c_str())
+        .print(test, indent.c_str(), output_flags);
+
+    std::cout << test.str() << std::endl;
+    // }
 
     m_committed = true;
 }
@@ -938,9 +953,9 @@ std::string SvgDeviceContext::GetColour(int colour)
     }
 }
 
-std::string SvgDeviceContext::GetStringSVG(bool xml_declaration)
+std::string SvgDeviceContext::GetStringSVG(bool xml_declaration, const std::string &elementId)
 {
-    if (!m_committed) Commit(xml_declaration);
+    if (!m_committed) Commit(xml_declaration, elementId);
 
     return m_outdata.str();
 }

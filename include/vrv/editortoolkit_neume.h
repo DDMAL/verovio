@@ -31,7 +31,7 @@ class EditorToolkitNeume : public EditorToolkit {
 public:
     EditorToolkitNeume(Doc *doc, View *view) : EditorToolkit(doc, view) {}
     bool ParseEditorAction(const std::string &json_editorAction);
-    virtual std::string EditInfo() { return m_infoObject.json(); };
+    virtual std::string EditInfo() { return m_editObject.json(); };
 
     /**
      * Experimental editor functions.
@@ -39,12 +39,12 @@ public:
     ///@{
     bool Chain(jsonxx::Array actions);
     bool Drag(std::string elementId, int x, int y);
-    bool Insert(std::string elementType, std::string staffId, int ulx, int uly, int lrx, int lry,
+    jsonxx::Object Insert(std::string elementType, std::string staffId, int ulx, int uly, int lrx, int lry,
         std::vector<std::pair<std::string, std::string> > attributes);
-    bool InsertToSyllable(std::string elementId);
+    jsonxx::Object InsertToSyllable(std::string elementId);
     bool Merge(std::vector<std::string> elementIds);
-    bool Set(std::string elementId, std::string attrType, std::string attrValue);
-    bool SetText(std::string elementId, std::string text);
+    jsonxx::Object Set(std::string elementId, std::string attrType, std::string attrValue);
+    jsonxx::Object SetText(std::string elementId, std::string text);
     bool SetClef(std::string elementId, std::string shape);
     bool Split(std::string elementId, int x);
     bool SplitNeume(std::string elementId, std::string ncId);
@@ -93,6 +93,7 @@ protected:
 
 private:
     jsonxx::Object m_infoObject;
+    jsonxx::Object m_editObject;
 };
 
 //--------------------------------------------------------------------------------

@@ -1247,7 +1247,7 @@ bool Toolkit::RenderToDeviceContext(int pageNo, DeviceContext *deviceContext)
     return true;
 }
 
-std::string Toolkit::RenderToSVG(int pageNo, bool xml_declaration)
+std::string Toolkit::RenderToSVG(int pageNo, bool xml_declaration, const std::string &elementId)
 {
     int initialPageNo = (m_doc.GetDrawingPage() == NULL) ? -1 : m_doc.GetDrawingPage()->GetIdx();
     // Create the SVG object, h & w come from the system
@@ -1279,7 +1279,7 @@ std::string Toolkit::RenderToSVG(int pageNo, bool xml_declaration)
     // render the page
     RenderToDeviceContext(pageNo, &svg);
 
-    std::string out_str = svg.GetStringSVG(xml_declaration);
+    std::string out_str = svg.GetStringSVG(xml_declaration, elementId);
     if (initialPageNo >= 0) m_doc.SetDrawingPage(initialPageNo);
     return out_str;
 }
