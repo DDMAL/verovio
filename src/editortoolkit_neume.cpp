@@ -3041,8 +3041,9 @@ bool EditorToolkitNeume::ChangeStaff(std::string elementId)
     ClosestBB comp;
 
     if (dynamic_cast<FacsimileInterface *>(element)->HasFacs()) {
-        comp.x = element->GetFacsimileInterface()->GetZone()->GetUlx();
-        comp.y = element->GetFacsimileInterface()->GetZone()->GetUly();
+        Zone* zone = element->GetFacsimileInterface()->GetZone();
+        comp.x = (zone->GetUlx() + zone->GetLrx()) / 2;
+        comp.y = (zone->GetUly() + zone->GetLry()) / 2;
     }
     else if (element->Is(SYLLABLE)) {
         int ulx, uly, lrx, lry;
