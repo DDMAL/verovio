@@ -38,7 +38,7 @@ public:
      */
     ///@{
     bool Chain(jsonxx::Array actions);
-    bool Drag(std::string elementId, int x, int y);
+    bool Drag(std::string elementId, std::string staffId, int x, int y);
     bool Insert(std::string elementType, std::string staffId, int ulx, int uly, int lrx, int lry,
         std::vector<std::pair<std::string, std::string> > attributes);
     bool InsertToSyllable(std::string elementId);
@@ -55,14 +55,14 @@ public:
     bool Ungroup(std::string groupType, std::vector<std::string> elementIds);
     bool ChangeGroup(std::string elementId, std::string contour);
     bool ToggleLigature(std::vector<std::string> elementIds);
-    bool ChangeStaff(std::string elementId);
+    bool ChangeStaff(std::string elementId, std::string staffId = "auto");
     ///@}
 protected:
     /**
      * Parse JSON instructions for experimental editor functions.
      */
     ///@{
-    bool ParseDragAction(jsonxx::Object param, std::string *elementId, int *x, int *y);
+    bool ParseDragAction(jsonxx::Object param, std::string *elementId, std::string *staffId, int *x, int *y);
     bool ParseInsertAction(jsonxx::Object param, std::string *elementType, std::string *startId, std::string *endId);
     bool ParseInsertAction(jsonxx::Object param, std::string *elementType, std::string *staffId, int *ulx, int *uly,
         int *lrx, int *lry, std::vector<std::pair<std::string, std::string> > *attributes);
@@ -91,6 +91,7 @@ protected:
     ///@{
     bool AdjustPitchFromPosition(Object *obj, Clef *clef = NULL);
     bool AdjustClefLineFromPosition(Clef *clef, Staff *staff = NULL);
+    Staff* GetClosestStaff(Object* element);
     ///@}
 
 private:

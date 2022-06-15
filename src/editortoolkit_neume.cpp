@@ -74,10 +74,10 @@ bool EditorToolkitNeume::ParseEditorAction(const std::string &json_editorAction)
     }
 
     if (action == "drag") {
-        std::string elementId;
+        std::string elementId, staffId;
         int x, y;
-        if (this->ParseDragAction(json.get<jsonxx::Object>("param"), &elementId, &x, &y)) {
-            return this->Drag(elementId, x, y);
+        if (this->ParseDragAction(json.get<jsonxx::Object>("param"), &elementId, &staffId, &x, &y)) {
+            return this->Drag(elementId, staffId, x, y);
         }
         LogWarning("Could not parse the drag action");
     }
@@ -243,7 +243,7 @@ bool EditorToolkitNeume::Chain(jsonxx::Array actions)
     return status;
 }
 
-bool EditorToolkitNeume::Drag(std::string elementId, int x, int y)
+bool EditorToolkitNeume::Drag(const std::string elementId, const std::string staffId, int x, int y)
 {
     std::string status = "OK", message = "";
     if (!m_doc->GetDrawingPage()) {
@@ -627,7 +627,7 @@ bool EditorToolkitNeume::Drag(std::string elementId, int x, int y)
                 }
             }
         }
-        ChangeStaff(elementId);
+        ChangeStaff(elementId, staffId);
     }
     else if (element->Is(DIVLINE)) {
         DivLine *divLine = dynamic_cast<DivLine *>(element);
@@ -675,7 +675,7 @@ bool EditorToolkitNeume::Drag(std::string elementId, int x, int y)
                 }
             }
         }
-        ChangeStaff(elementId);
+        ChangeStaff(elementId, staffId);
     }
     else {
         LogWarning("Unsupported element for dragging.");
@@ -2997,7 +2997,53 @@ bool EditorToolkitNeume::ToggleLigature(std::vector<std::string> elementIds)
     return success1 && success2;
 }
 
-bool EditorToolkitNeume::ChangeStaff(std::string elementId)
+Staff* EditorToolkitNeume::GetClosestStaff(Object* element) {
+    ListOfObjects stavesList;
+    ClassIdComparison ac(STAFF);
+    m_doc->FindAllDescendantByComparison(&stavesList, &ac);
+
+    std::vector<Object *> staves(stavesList.begin(), stavesList.end());
+
+    ClosestBB comp;
+
+    if (dynamic_cast<FacsimileInterface *>(element)->HasFacs()) {
+        comp.x = element->GetFacsimileInterface()->GetZone()->GetUlx();
+        comp.y = element->GetFacsimileInterface()->GetZone()->GetUly();
+    }
+    else if (element->Is(SYLLABLE)) {
+        int ulx, uly, lrx, lry;
+        LayerElement *layerElement = dynamic_cast<LayerElement *>(element);
+        if (!layerElement->GenerateZoneBounds(&ulx, &uly, &lrx, &lry)) {
+            LogError("Couldn't generate bounding box for syllable.");
+            m_infoObject.import("status", "FAILURE");
+            m_infoObject.import("message", "Couldn't generate bounding box for syllable.");
+            return NULL;
+        }
+        comp.x = (lrx + ulx) / 2;
+        comp.y = (uly + lry) / 2;
+    }
+    else {
+        LogError("This element does not have a facsimile.");
+        m_infoObject.import("status", "FAILURE");
+        m_infoObject.import("message", "This element does not have a facsimile.");
+        return NULL;
+    }
+
+    Staff *staff = NULL;
+    // find the nearest staff line
+    if (staves.size() <= 0) {
+        LogError("Could not find any staves. This should not happen");
+        m_infoObject.import("status", "FAILURE");
+        m_infoObject.import("message", "Could not find any staves. This should not happen");
+        return NULL;
+    }
+
+    std::sort(staves.begin(), staves.end(), comp);
+    staff = dynamic_cast<Staff *>(staves.front());
+    return staff;
+}
+
+bool EditorToolkitNeume::ChangeStaff(std::string elementId, std::string staffId)
 {
     if (!m_doc->GetDrawingPage()) {
         LogError("Could not get the drawing page");
@@ -3032,45 +3078,13 @@ bool EditorToolkitNeume::ChangeStaff(std::string elementId)
         return false;
     }
 
-    ListOfObjects stavesList;
-    ClassIdComparison ac(STAFF);
-    m_doc->FindAllDescendantByComparison(&stavesList, &ac);
+    // If staffId has been specified, use it;
+    // otherwise (staffId == "auto"), find closest staff
+    Staff *staff = staffId == "auto"
+        ? GetClosestStaff(element)
+        : dynamic_cast<Staff *> (m_doc->FindDescendantByUuid(staffId));
 
-    std::vector<Object *> staves(stavesList.begin(), stavesList.end());
-
-    ClosestBB comp;
-
-    if (dynamic_cast<FacsimileInterface *>(element)->HasFacs()) {
-        comp.x = element->GetFacsimileInterface()->GetZone()->GetUlx();
-        comp.y = element->GetFacsimileInterface()->GetZone()->GetUly();
-    }
-    else if (element->Is(SYLLABLE)) {
-        int ulx, uly, lrx, lry;
-        LayerElement *layerElement = dynamic_cast<LayerElement *>(element);
-        if (!layerElement->GenerateZoneBounds(&ulx, &uly, &lrx, &lry)) {
-            LogError("Couldn't generate bounding box for syllable.");
-            m_infoObject.import("status", "FAILURE");
-            m_infoObject.import("message", "Couldn't generate bounding box for syllable.");
-            return false;
-        }
-        comp.x = (lrx + ulx) / 2;
-        comp.y = (uly + lry) / 2;
-    }
-    else {
-        LogError("This element does not have a facsimile.");
-        m_infoObject.import("status", "FAILURE");
-        m_infoObject.import("message", "This element does not have a facsimile.");
-        return false;
-    }
-
-    Staff *staff = NULL;
-    
-    // find the nearest staff line
-    if (staves.size() > 0) {
-        std::sort(staves.begin(), staves.end(), comp);
-        staff = dynamic_cast<Staff *>(staves.front());
-    }
-    else {
+    if (staff == NULL) {
         LogError("Could not find any staves. This should not happen");
         m_infoObject.import("status", "FAILURE");
         m_infoObject.import("message", "Could not find any staves. This should not happen");
@@ -3203,14 +3217,21 @@ bool EditorToolkitNeume::ChangeStaff(std::string elementId)
     return true;
 }
 
-bool EditorToolkitNeume::ParseDragAction(jsonxx::Object param, std::string *elementId, int *x, int *y)
+bool EditorToolkitNeume::ParseDragAction(jsonxx::Object param, std::string *elementId, std::string *staffId, int *x, int *y)
 {
-    if (!param.has<jsonxx::String>("elementId")) return false;
-    (*elementId) = param.get<jsonxx::String>("elementId");
-    if (!param.has<jsonxx::Number>("x")) return false;
-    (*x) = param.get<jsonxx::Number>("x");
-    if (!param.has<jsonxx::Number>("y")) return false;
-    (*y) = param.get<jsonxx::Number>("y");
+    // Check if the correct parameters exist
+    if (!param.has<jsonxx::String>("elementId") ||
+        !param.has<jsonxx::String>("staffId") ||
+        !param.has<jsonxx::Number>("x") ||
+        !param.has<jsonxx::Number>("y")
+    )
+        return false;
+
+    *elementId = param.get<jsonxx::String>("elementId");
+    *staffId = param.get<jsonxx::String>("staffId");
+    *x = param.get<jsonxx::Number>("x");
+    *y = param.get<jsonxx::Number>("y");
+
     return true;
 }
 
