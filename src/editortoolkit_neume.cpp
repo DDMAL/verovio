@@ -219,6 +219,7 @@ bool EditorToolkitNeume::ParseEditorAction(const std::string &json_editorAction)
     else {
         LogWarning("Unknown action type '%s'.", action.c_str());
     }
+
     m_infoObject.import("status", "FAILURE");
     m_infoObject.import("message", "Action " + action + " could not be parsed or is unknown.");
     return false;
@@ -3238,26 +3239,34 @@ bool EditorToolkitNeume::ParseDragAction(jsonxx::Object param, std::string *elem
 bool EditorToolkitNeume::ParseInsertAction(
     jsonxx::Object param, std::string *elementType, std::string *startId, std::string *endId)
 {
-    if (!param.has<jsonxx::String>("elementType")) return false;
-    (*elementType) = param.get<jsonxx::String>("elementType");
-    if (!param.has<jsonxx::String>("startid")) return false;
-    (*startId) = param.get<jsonxx::String>("startid");
-    if (!param.has<jsonxx::String>("endid")) return false;
-    (*endId) = param.get<jsonxx::String>("endid");
+    if (!param.has<jsonxx::String>("elementType") ||
+        !param.has<jsonxx::String>("startid") ||
+        !param.has<jsonxx::String>("endid")
+    )
+        return false;
+
+    *elementType = param.get<jsonxx::String>("elementType");
+    *startId = param.get<jsonxx::String>("startid");
+    *endId = param.get<jsonxx::String>("endid");
+
     return true;
 }
 
 bool EditorToolkitNeume::ParseInsertAction(jsonxx::Object param, std::string *elementType, std::string *staffId,
     int *ulx, int *uly, int *lrx, int *lry, std::vector<std::pair<std::string, std::string> > *attributes)
 {
-    if (!param.has<jsonxx::String>("elementType")) return false;
-    (*elementType) = param.get<jsonxx::String>("elementType");
-    if (!param.has<jsonxx::String>("staffId")) return false;
-    (*staffId) = param.get<jsonxx::String>("staffId");
-    if (!param.has<jsonxx::Number>("ulx")) return false;
-    (*ulx) = param.get<jsonxx::Number>("ulx");
-    if (!param.has<jsonxx::Number>("uly")) return false;
-    (*uly) = param.get<jsonxx::Number>("uly");
+    if (!param.has<jsonxx::String>("elementType") ||
+        !param.has<jsonxx::String>("staffId") ||
+        !param.has<jsonxx::Number>("ulx") ||
+        !param.has<jsonxx::Number>("uly")
+    )
+        return false;
+
+    *elementType = param.get<jsonxx::String>("elementType");
+    *staffId = param.get<jsonxx::String>("staffId");
+    *ulx = param.get<jsonxx::Number>("ulx");
+    *uly = param.get<jsonxx::Number>("uly");
+
     if (param.has<jsonxx::Object>("attributes")) {
         jsonxx::Object o = param.get<jsonxx::Object>("attributes");
         auto m = o.kv_map();
@@ -3275,31 +3284,38 @@ bool EditorToolkitNeume::ParseInsertAction(jsonxx::Object param, std::string *el
         }
     }
     else {
-        if (!param.has<jsonxx::Number>("lrx")) return false;
+        if (!param.has<jsonxx::Number>("lrx") || !param.has<jsonxx::Number>("lry"))
+            return false;
+
         *lrx = param.get<jsonxx::Number>("lrx");
-        if (!param.has<jsonxx::Number>("lry")) return false;
         *lry = param.get<jsonxx::Number>("lry");
     }
     return true;
 }
 
 bool EditorToolkitNeume::ParseInsertToSyllableAction(jsonxx::Object param, std::string *elementId) {
-    if (!param.has<jsonxx::String>("elementId")) return false;
-    (*elementId) = param.get<jsonxx::String>("elementId");
+    if (!param.has<jsonxx::String>("elementId"))
+        return false;
+
+    *elementId = param.get<jsonxx::String>("elementId");
     return true;
 }
 
 bool EditorToolkitNeume::ParseMoveOuttaSyllableAction(jsonxx::Object param, std::string *elementId) {
-    if (!param.has<jsonxx::String>("elementId")) return false;
-    (*elementId) = param.get<jsonxx::String>("elementId");
+    if (!param.has<jsonxx::String>("elementId"))
+        return false;
+
+    *elementId = param.get<jsonxx::String>("elementId");
     return true;
 }
 
 bool EditorToolkitNeume::ParseMergeAction(jsonxx::Object param, std::vector<std::string> *elementIds)
 {
-    if (!param.has<jsonxx::Array>("elementIds")) return false;
+    if (!param.has<jsonxx::Array>("elementIds"))
+        return false;
+
     jsonxx::Array array = param.get<jsonxx::Array>("elementIds");
-    for (int i = 0; i < (int)array.size(); i++) {
+    for (int i = 0; i < (int) array.size(); i++) {
         elementIds->push_back(array.get<jsonxx::String>(i));
     }
     return true;
@@ -3311,13 +3327,14 @@ bool EditorToolkitNeume::ParseSplitAction(jsonxx::Object param, std::string *ele
         LogWarning("Could not parse 'elementId'.");
         return false;
     }
-    (*elementId) = param.get<jsonxx::String>("elementId");
 
     if (!param.has<jsonxx::Number>("x")) {
         LogWarning("Could not parse 'x'.");
         return false;
     }
-    (*x) = param.get<jsonxx::Number>("x");
+
+    *elementId = param.get<jsonxx::String>("elementId");
+    *x = param.get<jsonxx::Number>("x");
 
     return true;
 }
@@ -3329,17 +3346,20 @@ bool EditorToolkitNeume::ParseSetAction(
         LogWarning("Could not parse 'elementId'");
         return false;
     }
-    (*elementId) = param.get<jsonxx::String>("elementId");
+
     if (!param.has<jsonxx::String>("attrType")) {
         LogWarning("Could not parse 'attrType'");
         return false;
     }
-    (*attrType) = param.get<jsonxx::String>("attrType");
+
     if (!param.has<jsonxx::String>("attrValue")) {
         LogWarning("Could not parse 'attrValue'");
         return false;
     }
-    (*attrValue) = param.get<jsonxx::String>("attrValue");
+
+    *elementId = param.get<jsonxx::String>("elementId");
+    *attrType = param.get<jsonxx::String>("attrType");
+    *attrValue = param.get<jsonxx::String>("attrValue");
     return true;
 }
 
@@ -3349,11 +3369,13 @@ bool EditorToolkitNeume::ParseSetTextAction(jsonxx::Object param, std::string *e
         LogWarning("Could not parse 'elementId'");
         return false;
     }
-    *elementId = param.get<jsonxx::String>("elementId");
+
     if (!param.has<jsonxx::String>("text")) {
         LogWarning("Could not parse 'text'");
         return false;
     }
+
+    *elementId = param.get<jsonxx::String>("elementId");
     *text = param.get<jsonxx::String>("text");
     return true;
 }
@@ -3364,34 +3386,41 @@ bool EditorToolkitNeume::ParseSetClefAction(jsonxx::Object param, std::string *e
         LogWarning("Could not parse 'elementId'");
         return false;
     }
-    *elementId = param.get<jsonxx::String>("elementId");
+
     if (!param.has<jsonxx::String>("shape")) {
         LogWarning("Could not parse 'shape'");
         return false;
     }
+
+    *elementId = param.get<jsonxx::String>("elementId");
     *shape = param.get<jsonxx::String>("shape");
     return true;
 }
 
 bool EditorToolkitNeume::ParseRemoveAction(jsonxx::Object param, std::string *elementId)
 {
-    if (!param.has<jsonxx::String>("elementId")) return false;
-    (*elementId) = param.get<jsonxx::String>("elementId");
+    if (!param.has<jsonxx::String>("elementId"))
+        return false;
+
+    *elementId = param.get<jsonxx::String>("elementId");
     return true;
 }
 
 bool EditorToolkitNeume::ParseResizeAction(
     jsonxx::Object param, std::string *elementId, int *ulx, int *uly, int *lrx, int *lry)
 {
-    if (!param.has<jsonxx::String>("elementId")) return false;
+    if (!param.has<jsonxx::String>("elementId") ||
+        !param.has<jsonxx::Number>("ulx") ||
+        !param.has<jsonxx::Number>("uly") ||
+        !param.has<jsonxx::Number>("lrx") ||
+        !param.has<jsonxx::Number>("lry")
+    )
+        return false;
+
     *elementId = param.get<jsonxx::String>("elementId");
-    if (!param.has<jsonxx::Number>("ulx")) return false;
     *ulx = param.get<jsonxx::Number>("ulx");
-    if (!param.has<jsonxx::Number>("uly")) return false;
     *uly = param.get<jsonxx::Number>("uly");
-    if (!param.has<jsonxx::Number>("lrx")) return false;
     *lrx = param.get<jsonxx::Number>("lrx");
-    if (!param.has<jsonxx::Number>("lry")) return false;
     *lry = param.get<jsonxx::Number>("lry");
     return true;
 }
@@ -3399,17 +3428,20 @@ bool EditorToolkitNeume::ParseResizeAction(
 bool EditorToolkitNeume::ParseResizeRotateAction(
     jsonxx::Object param, std::string *elementId, int *ulx, int *uly, int *lrx, int *lry, float *rotate)
 {
-    if (!param.has<jsonxx::String>("elementId")) return false;
+    if (!param.has<jsonxx::String>("elementId") ||
+        !param.has<jsonxx::Number>("ulx") ||
+        !param.has<jsonxx::Number>("uly") ||
+        !param.has<jsonxx::Number>("lrx") ||
+        !param.has<jsonxx::Number>("lry") ||
+        !param.has<jsonxx::Number>("rotate")
+    )
+        return false;
+
     *elementId = param.get<jsonxx::String>("elementId");
-    if (!param.has<jsonxx::Number>("ulx")) return false;
     *ulx = param.get<jsonxx::Number>("ulx");
-    if (!param.has<jsonxx::Number>("uly")) return false;
     *uly = param.get<jsonxx::Number>("uly");
-    if (!param.has<jsonxx::Number>("lrx")) return false;
     *lrx = param.get<jsonxx::Number>("lrx");
-    if (!param.has<jsonxx::Number>("lry")) return false;
     *lry = param.get<jsonxx::Number>("lry");
-    if (!param.has<jsonxx::Number>("rotate")) return false;
     *rotate = param.get<jsonxx::Number>("rotate");
     return true;
 }
@@ -3417,9 +3449,11 @@ bool EditorToolkitNeume::ParseResizeRotateAction(
 bool EditorToolkitNeume::ParseGroupAction(
     jsonxx::Object param, std::string *groupType, std::vector<std::string> *elementIds)
 {
-    if (!param.has<jsonxx::String>("groupType")) return false;
-    (*groupType) = param.get<jsonxx::String>("groupType");
-    if (!param.has<jsonxx::Array>("elementIds")) return false;
+    if (!param.has<jsonxx::String>("groupType") || !param.has<jsonxx::Array>("elementIds"))
+        return false;
+
+    *groupType = param.get<jsonxx::String>("groupType");
+
     jsonxx::Array array = param.get<jsonxx::Array>("elementIds");
     for (int i = 0; i < (int)array.size(); i++) {
         elementIds->push_back(array.get<jsonxx::String>(i));
@@ -3431,9 +3465,11 @@ bool EditorToolkitNeume::ParseGroupAction(
 bool EditorToolkitNeume::ParseUngroupAction(
     jsonxx::Object param, std::string *groupType, std::vector<std::string> *elementIds)
 {
-    if (!param.has<jsonxx::String>("groupType")) return false;
-    (*groupType) = param.get<jsonxx::String>("groupType");
-    if (!param.has<jsonxx::Array>("elementIds")) return false;
+    if (!param.has<jsonxx::String>("groupType") || !param.has<jsonxx::Array>("elementIds"))
+        return false;
+
+    *groupType = param.get<jsonxx::String>("groupType");
+
     jsonxx::Array array = param.get<jsonxx::Array>("elementIds");
     for (int i = 0; i < (int)array.size(); i++) {
         elementIds->push_back(array.get<jsonxx::String>(i));
@@ -3448,30 +3484,36 @@ bool EditorToolkitNeume::ParseSplitNeumeAction(jsonxx::Object param, std::string
         LogWarning("Could not parse 'elementId'.");
         return false;
     }
-    (*elementId) = param.get<jsonxx::String>("elementId");
 
     if (!param.has<jsonxx::String>("ncId")) {
         LogWarning("Could not parse 'ncId'.");
         return false;
     }
-    (*ncId) = param.get<jsonxx::String>("ncId");
+
+    *elementId = param.get<jsonxx::String>("elementId");
+    *ncId = param.get<jsonxx::String>("ncId");
 
     return true;
 }
 
 bool EditorToolkitNeume::ParseChangeGroupAction(jsonxx::Object param, std::string *elementId, std::string *contour)
 {
-    if (!param.has<jsonxx::String>("elementId")) return false;
-    (*elementId) = param.get<jsonxx::String>("elementId");
-    if (!param.has<jsonxx::String>("contour")) return false;
-    (*contour) = param.get<jsonxx::String>("contour");
+    if (!param.has<jsonxx::String>("elementId") ||
+        !param.has<jsonxx::String>("contour")
+    )
+        return false;
+
+    *elementId = param.get<jsonxx::String>("elementId");
+    *contour = param.get<jsonxx::String>("contour");
     return true;
 }
 
 bool EditorToolkitNeume::ParseToggleLigatureAction(
     jsonxx::Object param, std::vector<std::string> *elementIds)
 {
-    if (!param.has<jsonxx::Array>("elementIds")) return false;
+    if (!param.has<jsonxx::Array>("elementIds"))
+        return false;
+
     jsonxx::Array array = param.get<jsonxx::Array>("elementIds");
     for (int i = 0; i < (int)array.size(); i++) {
         elementIds->push_back(array.get<jsonxx::String>(i));
@@ -3481,8 +3523,10 @@ bool EditorToolkitNeume::ParseToggleLigatureAction(
 
 bool EditorToolkitNeume::ParseChangeStaffAction(jsonxx::Object param, std::string *elementId)
 {
-    if (!param.has<jsonxx::String>("elementId")) return false;
-    (*elementId) = param.get<jsonxx::String>("elementId");
+    if (!param.has<jsonxx::String>("elementId"))
+        return false;
+
+    *elementId = param.get<jsonxx::String>("elementId");
 
     return true;
 }
