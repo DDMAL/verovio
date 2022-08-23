@@ -182,6 +182,7 @@ $exports .= "'_vrvToolkit_redoPagePitchPosLayout',";
 $exports .= "'_vrvToolkit_renderData',";
 $exports .= "'_vrvToolkit_renderToMIDI',";
 $exports .= "'_vrvToolkit_renderToSVG',";
+$exports .= "'_vrvToolkit_renderChangesToSVG',";
 $exports .= "'_vrvToolkit_renderToTimemap',";
 $exports .= "'_vrvToolkit_setOptions'";
 $exports .= "]\"";

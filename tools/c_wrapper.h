@@ -30,6 +30,7 @@ const char *vrvToolkit_getVersion(Toolkit *tk);
 bool vrvToolkit_loadData(Toolkit *tk, const char *data);
 const char *vrvToolkit_renderToMIDI(Toolkit *tk, const char *c_options);
 const char *vrvToolkit_renderToSVG(Toolkit *tk, int page_no, const char *c_options);
+const char *vrvToolkit_renderChangesToSVG(Toolkit *tk, int page_no, const char *c_options);
 const char *vrvToolkit_renderToTimemap(Toolkit *tk);
 void vrvToolkit_redoLayout(Toolkit *tk);
 void vrvToolkit_redoPagePitchPosLayout(Toolkit *tk);

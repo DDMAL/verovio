@@ -1281,7 +1281,57 @@ std::string Toolkit::RenderToSVG(int pageNo, bool xml_declaration)
 
     std::string out_str = svg.GetStringSVG(xml_declaration);
     if (initialPageNo >= 0) m_doc.SetDrawingPage(initialPageNo);
+
+    std::cout << m_editorToolkit->EditInfo() << std::endl;
+
     return out_str;
+}
+
+std::string Toolkit::RenderChangesToSVG(int pageNo, bool xml_declaration)
+{
+    int initialPageNo = (m_doc.GetDrawingPage() == NULL) ? -1 : m_doc.GetDrawingPage()->GetIdx();
+    // Create the SVG object, h & w come from the system
+    // We will need to set the size of the page after having drawn it depending on the options
+    SvgDeviceContext svg;
+
+    int indent = (m_options->m_outputIndentTab.GetValue()) ? -1 : m_options->m_outputIndent.GetValue();
+    svg.SetIndent(indent);
+
+    if (m_options->m_mmOutput.GetValue()) {
+        svg.SetMMOutput(true);
+    }
+
+    if (m_doc.GetType() == Facs) {
+        svg.SetFacsimile(true);
+    }
+
+    // set the option to use viewbox on svg root
+    if (m_options->m_svgBoundingBoxes.GetValue()) {
+        svg.SetSvgBoundingBoxes(true);
+    }
+
+    if (m_options->m_svgViewBox.GetValue()) {
+        svg.SetSvgViewBox(true);
+    }
+
+    svg.SetHtml5(m_options->m_svgHtml5.GetValue());
+
+    // render the page
+    RenderToDeviceContext(pageNo, &svg);
+
+    jsonxx::Object output;
+    jsonxx::Object editInfo;
+    editInfo.parse(m_editorToolkit->EditInfo());
+
+    std::string changedId = editInfo.get<jsonxx::Array>("changed").get<jsonxx::String>(0);
+    output << "changed" << changedId;
+
+    std::string out_str = svg.GetStringSVG(xml_declaration, changedId);
+    output << "svg" << out_str;
+
+    if (initialPageNo >= 0) m_doc.SetDrawingPage(initialPageNo);
+
+    return output.json();
 }
 
 bool Toolkit::RenderToSVGFile(const std::string &filename, int pageNo)

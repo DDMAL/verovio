@@ -157,6 +157,13 @@ const char *vrvToolkit_renderToSVG(Toolkit *tk, int page_no, const char *c_optio
     return tk->GetCString();
 }
 
+const char *vrvToolkit_renderChangesToSVG(Toolkit *tk, int page_no, const char *c_options)
+{
+    tk->ResetLogBuffer();
+    tk->SetCString(tk->RenderChangesToSVG(page_no, false));
+    return tk->GetCString();
+}
+
 const char *vrvToolkit_renderToTimemap(Toolkit *tk)
 {
     tk->ResetLogBuffer();

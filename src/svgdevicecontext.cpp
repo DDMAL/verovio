@@ -79,7 +79,7 @@ bool SvgDeviceContext::CopyFileToStream(const std::string &filename, std::ostrea
     return true;
 }
 
-void SvgDeviceContext::Commit(bool xml_declaration)
+void SvgDeviceContext::Commit(bool xml_declaration, const std::string &elementId)
 {
 
     if (m_committed) {
@@ -150,7 +150,17 @@ void SvgDeviceContext::Commit(bool xml_declaration)
 
     // save the glyph data to m_outdata
     std::string indent = (m_indent == -1) ? "\t" : std::string(m_indent, ' ');
-    m_svgDoc.save(m_outdata, indent.c_str(), output_flags);
+
+    // Default behavior when the entire SVG is to be rendered:
+    if (elementId == "") {
+      m_svgDoc.save(m_outdata, indent.c_str(), output_flags);
+    }
+    // When only a specific element has been asked for:
+    else {
+      m_svgDoc
+        .find_child_by_attribute("id", elementId.c_str())
+        .print(m_outdata, indent.c_str(), output_flags);
+    }
 
     m_committed = true;
 }
@@ -938,9 +948,9 @@ std::string SvgDeviceContext::GetColour(int colour)
     }
 }
 
-std::string SvgDeviceContext::GetStringSVG(bool xml_declaration)
+std::string SvgDeviceContext::GetStringSVG(bool xml_declaration, const std::string &elementId)
 {
-    if (!m_committed) Commit(xml_declaration);
+    if (!m_committed) Commit(xml_declaration, elementId);
 
     return m_outdata.str();
 }

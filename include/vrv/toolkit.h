@@ -136,6 +136,8 @@ public:
      */
     std::string RenderToSVG(int pageNo = 1, bool xml_declaration = false);
 
+    std::string RenderChangesToSVG(int pageNo = 1, bool xml_declaration = false);
+
     /**
      * Render the page in SVG and save it to the file.
      * Page number is 1-based.

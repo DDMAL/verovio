@@ -46,7 +46,9 @@ namespace vrv {
 bool EditorToolkitNeume::ParseEditorAction(const std::string &json_editorAction)
 {
     jsonxx::Object json;
+    jsonxx::Array empty;
     m_infoObject.reset();
+    m_infoObject << "changed" << empty;
 
     // Read JSON actions
     if (!json.parse(json_editorAction)) {
@@ -832,6 +834,7 @@ bool EditorToolkitNeume::Insert(std::string elementType, std::string staffId, in
                 m_infoObject.import("uuid", newStaff->GetUuid());
                 m_infoObject.import("status", status);
                 m_infoObject.import("message", message);
+                m_infoObject.get<jsonxx::Array>("changed") << parent->GetUuid();
 
                 return true;
             }
@@ -844,6 +847,8 @@ bool EditorToolkitNeume::Insert(std::string elementType, std::string staffId, in
         m_infoObject.import("uuid", newStaff->GetUuid());
         m_infoObject.import("status", status);
         m_infoObject.import("message", message);
+        m_infoObject.get<jsonxx::Array>("changed") << parent->GetUuid();
+
         return true;
     }
 
@@ -1231,6 +1236,7 @@ bool EditorToolkitNeume::Insert(std::string elementType, std::string staffId, in
     layer->ReorderByXPos();
     m_infoObject.import("status", status);
     m_infoObject.import("message", message);
+    m_infoObject.get<jsonxx::Array>("changed") << layer->GetUuid();
     return true;
 }
 
@@ -1350,6 +1356,9 @@ bool EditorToolkitNeume::InsertToSyllable(std::string elementId) {
 
     m_infoObject.import("status", "OK");
     m_infoObject.import("message", "");
+    // TODO: just the syllable works fine
+    m_infoObject.get<jsonxx::Array>("changed") << parent->GetUuid();
+
     return true;   
 }
 
