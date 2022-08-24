@@ -158,8 +158,10 @@ void SvgDeviceContext::Commit(bool xml_declaration, const std::string &elementId
     // When only a specific element has been asked for:
     else {
       m_svgDoc
-        .find_child_by_attribute("id", elementId.c_str())
-        .print(m_outdata, indent.c_str(), output_flags);
+        .find_node([&](pugi::xml_node node) {
+            return std::strcmp(node.attribute("id").value(), elementId.c_str()) == 0;
+        })
+        .print(m_outdata, "", pugi::format_raw);
     }
 
     m_committed = true;
