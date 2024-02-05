@@ -881,11 +881,12 @@ bool EditorToolkitNeume::Insert(std::string elementType, std::string staffId, in
             = (int)(m_doc->GetDrawingDoubleUnit(staff->m_drawingStaffSize) / NOTE_HEIGHT_TO_STAFF_SIZE_RATIO);
         const int noteWidth
             = (int)(m_doc->GetDrawingDoubleUnit(staff->m_drawingStaffSize) / NOTE_WIDTH_TO_STAFF_SIZE_RATIO);
+        const int offsetX = (int)(noteWidth / 2);
 
         // Set up facsimile
-        zone->SetUlx(ulx);
+        zone->SetUlx(ulx - offsetX);
         zone->SetUly(uly);
-        zone->SetLrx(ulx + noteWidth);
+        zone->SetLrx(ulx + offsetX);
         zone->SetLry(uly + noteHeight);
 
         // add syl bounding box if Facs
@@ -995,9 +996,9 @@ bool EditorToolkitNeume::Insert(std::string elementType, std::string staffId, in
 
                 // Apply offset due to rotate
                 newUly += (newUlx - ulx) * tan(-staff->GetDrawingRotate() * M_PI / 180.0);
-                newZone->SetUlx(newUlx);
+                newZone->SetUlx(newUlx - offsetX);
                 newZone->SetUly(newUly);
-                newZone->SetLrx(newUlx + noteWidth);
+                newZone->SetLrx(newUlx + offsetX);
                 newZone->SetLry(newUly + noteHeight);
 
                 newNc->AttachZone(newZone);
@@ -1027,14 +1028,21 @@ bool EditorToolkitNeume::Insert(std::string elementType, std::string staffId, in
         Clef *clef = new Clef();
         data_CLEFSHAPE clefShape = CLEFSHAPE_NONE;
 
+        const int staffSize = m_doc->GetDrawingDoubleUnit(staff->m_drawingStaffSize);
+        int offsetR, offsetL;
+
         for (auto it = attributes.begin(); it != attributes.end(); ++it) {
             if (it->first == "shape") {
                 if (it->second == "C") {
                     clefShape = CLEFSHAPE_C;
+                    offsetR = (int)(staffSize / NOTE_WIDTH_TO_STAFF_SIZE_RATIO / 2);
+                    offsetL = offsetR;
                     break;
                 }
                 else if (it->second == "F") {
                     clefShape = CLEFSHAPE_F;
+                    offsetR = 0;
+                    offsetL = (int)(staffSize / NOTE_WIDTH_TO_STAFF_SIZE_RATIO / 2);
                     break;
                 }
             }
@@ -1048,7 +1056,6 @@ bool EditorToolkitNeume::Insert(std::string elementType, std::string staffId, in
             return false;
         }
         clef->SetShape(clefShape);
-        const int staffSize = m_doc->GetDrawingDoubleUnit(staff->m_drawingStaffSize);
         int yDiff = -staff->GetDrawingY() + uly;
         yDiff += ((ulx - staff->GetZone()->GetUlx()))
             * tan(-staff->GetDrawingRotate() * M_PI / 180.0); // Subtract distance due to rotate.
@@ -1056,9 +1063,9 @@ bool EditorToolkitNeume::Insert(std::string elementType, std::string staffId, in
         clef->SetLine(clefLine);
 
         Zone *zone = new Zone();
-        zone->SetUlx(ulx);
+        zone->SetUlx(ulx - offsetR);
         zone->SetUly(uly);
-        zone->SetLrx(ulx + staffSize / NOTE_WIDTH_TO_STAFF_SIZE_RATIO);
+        zone->SetLrx(ulx + offsetL);
         zone->SetLry(uly + staffSize / NOTE_HEIGHT_TO_STAFF_SIZE_RATIO);
         clef->AttachZone(zone);
         Surface *surface = dynamic_cast<Surface *>(facsimile->FindDescendantByType(SURFACE));
@@ -1104,13 +1111,14 @@ bool EditorToolkitNeume::Insert(std::string elementType, std::string staffId, in
             = (int)(m_doc->GetDrawingDoubleUnit(staff->m_drawingStaffSize) / NOTE_HEIGHT_TO_STAFF_SIZE_RATIO);
         const int noteWidth
             = (int)(m_doc->GetDrawingDoubleUnit(staff->m_drawingStaffSize) / NOTE_WIDTH_TO_STAFF_SIZE_RATIO);
+        const int offsetX = (int)(noteWidth / 4);
 
         ulx -= noteWidth / 2;
         uly -= noteHeight / 2;
 
-        zone->SetUlx(ulx);
+        zone->SetUlx(ulx + offsetX);
         zone->SetUly(uly);
-        zone->SetLrx(ulx + noteWidth);
+        zone->SetLrx(ulx + noteWidth + offsetX);
         zone->SetLry(uly + noteHeight);
         layer->ReorderByXPos();
         if (!AdjustPitchFromPosition(custos)) {
@@ -1157,13 +1165,14 @@ bool EditorToolkitNeume::Insert(std::string elementType, std::string staffId, in
             = (int)(m_doc->GetDrawingDoubleUnit(staff->m_drawingStaffSize) / NOTE_HEIGHT_TO_STAFF_SIZE_RATIO);
         const int noteWidth
             = (int)(m_doc->GetDrawingDoubleUnit(staff->m_drawingStaffSize) / NOTE_WIDTH_TO_STAFF_SIZE_RATIO);
+        const int offsetX = (int)(noteWidth / 2);
 
         ulx -= noteWidth / 2;
         uly -= noteHeight / 2;
 
-        zone->SetUlx(ulx);
+        zone->SetUlx(ulx + offsetX);
         zone->SetUly(uly);
-        zone->SetLrx(ulx + noteWidth);
+        zone->SetLrx(ulx + noteWidth + offsetX);
         zone->SetLry(uly + noteHeight);
         layer->ReorderByXPos();
 
@@ -1221,13 +1230,14 @@ bool EditorToolkitNeume::Insert(std::string elementType, std::string staffId, in
             = (int)(m_doc->GetDrawingDoubleUnit(staff->m_drawingStaffSize) / NOTE_HEIGHT_TO_STAFF_SIZE_RATIO);
         const int noteWidth
             = (int)(m_doc->GetDrawingDoubleUnit(staff->m_drawingStaffSize) / NOTE_WIDTH_TO_STAFF_SIZE_RATIO);
+        const int offsetX = (int)(noteWidth / 2);
 
         ulx -= noteWidth / 2;
         uly -= noteHeight / 2;
 
-        zone->SetUlx(ulx);
+        zone->SetUlx(ulx + offsetX);
         zone->SetUly(uly);
-        zone->SetLrx(ulx + noteWidth);
+        zone->SetLrx(ulx + noteWidth + offsetX);
         zone->SetLry(uly + noteHeight);
         layer->ReorderByXPos();
 
