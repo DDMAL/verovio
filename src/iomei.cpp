@@ -2702,6 +2702,7 @@ void MEIOutput::WriteNc(pugi::xml_node currentNode, Nc *nc)
     this->WritePitchInterface(currentNode, nc);
     this->WritePositionInterface(currentNode, nc);
     nc->WriteColor(currentNode);
+    nc->WriteCurvatureDirection(currentNode);
     nc->WriteIntervalMelodic(currentNode);
     nc->WriteNcForm(currentNode);
 }
@@ -6797,6 +6798,7 @@ bool MEIInput::ReadNc(Object *parent, pugi::xml_node nc)
     this->ReadPitchInterface(nc, vrvNc);
     this->ReadPositionInterface(nc, vrvNc);
     vrvNc->ReadColor(nc);
+    vrvNc->ReadCurvatureDirection(nc);
     vrvNc->ReadIntervalMelodic(nc);
     vrvNc->ReadNcForm(nc);
 

@@ -136,6 +136,13 @@ bool EditorToolkitNeume::ParseEditorAction(const std::string &json_editorAction)
         }
         LogWarning("Could not parse the set clef action");
     }
+    else if (action == "setLiquescent") {
+        std::string elementId, curve;
+        if (this->ParseSetLiquescentAction(json.get<jsonxx::Object>("param"), &elementId, &curve)) {
+            return this->SetLiquescent(elementId, curve);
+        }
+        LogWarning("Could not parse the set liquescent action");
+    }
     else if (action == "remove") {
         std::string elementId;
         if (this->ParseRemoveAction(json.get<jsonxx::Object>("param"), &elementId)) {
@@ -948,7 +955,6 @@ bool EditorToolkitNeume::Insert(std::string elementType, std::string staffId, in
                 contour = it->second;
             }
             else if (it->first == "curve") {
-                Liquescent *liquescent = new Liquescent();
                 curvatureDirection_CURVE curve = curvatureDirection_CURVE_NONE;
                 if (it->second == "a") {
                     curve = curvatureDirection_CURVE_a;
@@ -958,6 +964,7 @@ bool EditorToolkitNeume::Insert(std::string elementType, std::string staffId, in
                     curve = curvatureDirection_CURVE_c;
                     nc->SetCurve(curve);
                 }
+                Liquescent *liquescent = new Liquescent();
                 nc->AddChild(liquescent);
             }
         }
@@ -1991,6 +1998,50 @@ bool EditorToolkitNeume::SetClef(std::string elementId, std::string shape)
         m_doc->PrepareData();
         m_doc->GetDrawingPage()->LayOut(true);
     }
+    m_editInfo.import("status", "OK");
+    m_editInfo.import("message", "");
+    return true;
+}
+
+bool EditorToolkitNeume::SetLiquescent(std::string elementId, std::string curve)
+{
+    if (!m_doc->GetDrawingPage()) {
+        LogError("Could not get the drawing page.");
+        m_editInfo.import("status", "FAILURE");
+        m_editInfo.import("message", "Could not get the drawing page.");
+        return false;
+    }
+
+    Nc *nc = vrv_cast<Nc *>(m_doc->GetDrawingPage()->FindDescendantByID(elementId));
+    assert(nc);
+    bool hasLiquscent = nc->GetChildCount();
+
+    if (curve == "a") {
+        curvatureDirection_CURVE curve = curvatureDirection_CURVE_a;
+        nc->SetCurve(curve);
+        if (!hasLiquscent) {
+            Liquescent *liquescent = new Liquescent();
+            nc->AddChild(liquescent);
+        }
+    }
+    else if (curve == "c") {
+        curvatureDirection_CURVE curve = curvatureDirection_CURVE_c;
+        nc->SetCurve(curve);
+        if (!hasLiquscent) {
+            Liquescent *liquescent = new Liquescent();
+            nc->AddChild(liquescent);
+        }
+    }
+    else {
+        // For unset curve
+        curvatureDirection_CURVE curve = curvatureDirection_CURVE_NONE;
+        nc->SetCurve(curve);
+        if (hasLiquscent) {
+            Liquescent *liquescent = vrv_cast<Liquescent *>(nc->FindDescendantByType(LIQUESCENT));
+            nc->DeleteChild(liquescent);
+        }
+    }
+
     m_editInfo.import("status", "OK");
     m_editInfo.import("message", "");
     return true;
@@ -3859,6 +3910,21 @@ bool EditorToolkitNeume::ParseSetClefAction(jsonxx::Object param, std::string *e
     return true;
 }
 
+bool EditorToolkitNeume::ParseSetLiquescentAction(jsonxx::Object param, std::string *elementId, std::string *curve)
+{
+    if (!param.has<jsonxx::String>("elementId")) {
+        LogWarning("Could not parse 'elementId'");
+        return false;
+    }
+    *elementId = param.get<jsonxx::String>("elementId");
+    if (!param.has<jsonxx::String>("curve")) {
+        LogWarning("Could not parse 'curve'");
+        return false;
+    }
+    *curve = param.get<jsonxx::String>("curve");
+    return true;
+}
+
 bool EditorToolkitNeume::ParseRemoveAction(jsonxx::Object param, std::string *elementId)
 {
     if (!param.has<jsonxx::String>("elementId")) return false;
@@ -4088,6 +4154,8 @@ bool EditorToolkitNeume::AdjustPitchFromPosition(Object *obj, Clef *clef)
         const int staffSize = m_doc->GetDrawingUnit(staff->m_drawingStaffSize);
 
         for (auto it = pitchedChildren.begin(); it != pitchedChildren.end(); ++it) {
+            if ((*it)->Is(LIQUESCENT)) continue;
+
             FacsimileInterface *fi = (*it)->GetFacsimileInterface();
             if (fi == NULL || !fi->HasFacs()) {
                 LogError("Could not adjust pitch: child %s does not have facsimile data", (*it)->GetID().c_str());
